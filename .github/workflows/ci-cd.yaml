@@ -1,3 +1,4 @@
+
 name: Wisecow CI/CD Pipeline
 
 on:
@@ -26,3 +27,30 @@ jobs:
           context: .
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/wisecow:latest
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Create Kubernetes cluster
+        uses: helm/kind-action@v1
+
+      - name: Deploy Wisecow application
+        run: |
+          kubectl apply -f deployment.yaml
+          kubectl apply -f service.yaml
+
+      - name: Verify deployment
+        run: |
+          kubectl rollout status deployment/wisecow-deployment --timeout=180s
+          kubectl get pods
+          kubectl get services
+
+      - name: Test application
+        run: |
+          kubectl port-forward service/wisecow-service 8080:80 &
+          curl --fail --retry 10 --retry-connrefused --retry-delay 3 --max-time 15 http://localhost:8080
