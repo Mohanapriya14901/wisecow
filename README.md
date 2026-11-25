@@ -368,3 +368,12 @@ Original Wisecow application:
 https://github.com/nyrahul/wisecow
 
 Completed as part of the AccuKnox DevOps assessment.
+
+## Problem Statement 2 - Bash Scripting
+
+As part of the assessment, I also implemented:
+
+- System Health Monitoring Script
+- Application Health Checker
+
+[View scripts and documentation](problem-statement-2/README.md)
