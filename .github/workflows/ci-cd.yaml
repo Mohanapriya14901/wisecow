@@ -26,7 +26,9 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/wisecow:latest
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/wisecow:latest
+            ${{ secrets.DOCKER_USERNAME }}/wisecow:${{ github.sha }}
 
   deploy:
     needs: build-and-push
@@ -39,10 +41,35 @@ jobs:
       - name: Create Kubernetes cluster
         uses: helm/kind-action@v1
 
+      - name: Install NGINX Ingress Controller
+        run: |
+          kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.14.3/deploy/static/provider/kind/deploy.yaml
+
+          kubectl rollout status deployment/ingress-nginx-controller \
+            -n ingress-nginx --timeout=300s
+
+      - name: Generate TLS certificate
+        run: |
+          openssl req -x509 -nodes -days 365 \
+            -newkey rsa:2048 \
+            -keyout tls.key \
+            -out tls.crt \
+            -subj "/CN=wisecow.local" \
+            -addext "subjectAltName=DNS:wisecow.local"
+
+      - name: Create Kubernetes TLS secret
+        run: |
+          kubectl create secret tls wisecow-tls \
+            --cert=tls.crt \
+            --key=tls.key
+
       - name: Deploy Wisecow application
         run: |
           kubectl apply -f deployment.yaml
           kubectl apply -f service.yaml
+
+          kubectl set image deployment/wisecow-deployment \
+            '*=mohanapriyaarumugam/wisecow:${{ github.sha }}'
 
       - name: Verify deployment
         run: |
@@ -50,7 +77,25 @@ jobs:
           kubectl get pods
           kubectl get services
 
-      - name: Test application
+      - name: Configure Ingress
         run: |
-          kubectl port-forward service/wisecow-service 8080:80 &
-          curl --fail --retry 10 --retry-connrefused --retry-delay 3 --max-time 15 http://localhost:8080
+          kubectl apply -f ingress.yaml
+          kubectl get ingress
+
+      - name: Verify HTTPS application
+        run: |
+          kubectl port-forward -n ingress-nginx \
+            service/ingress-nginx-controller 8443:443 &
+
+          curl --fail \
+            --retry 15 \
+            --retry-all-errors \
+            --retry-delay 3 \
+            --max-time 15 \
+            --cacert tls.crt \
+            --resolve wisecow.local:8443:127.0.0.1 \
+            https://wisecow.local:8443/
+
+      - name: Clean up TLS files
+        if: always()
+        run: rm -f tls.key tls.crt
