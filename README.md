@@ -329,6 +329,29 @@ local development and assessment purposes.
 For a production environment, I would use a persistent
 Kubernetes cluster and a trusted TLS certificate.
 
+## Implementation Screenshots
+
+### Docker Container
+![Docker Container](screenshots/container.jpeg)
+
+### Docker Hub Image
+![Docker Hub](screenshots/dockerhub.jpeg)
+
+### Kubernetes Deployment
+![Kubernetes Pods](screenshots/kubernetes-pods.jpeg)
+
+### Wisecow Application
+![Wisecow Application](screenshots/application.jpeg)
+
+### TLS Secret Configuration
+![TLS Secret](screenshots/tls-secret.jpeg)
+
+### HTTPS Verification
+![HTTPS Verification](screenshots/https-verification.jpeg)
+
+### Successful CI/CD Pipeline
+![CI/CD Pipeline](screenshots/ci-cd.jpeg)
+
 ## Conclusion
 
 Through this project, I gained hands-on experience with
